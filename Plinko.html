@@ -3,7 +3,8 @@
 
 <head>
     <title>PlinkoBingo</title>
-    <meta name="viewport"content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, shrink-to-fit=yes">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.18.0/matter.min.js"></script>
     <link rel="icon" href="https://i.ibb.co/CPjv1sy/Plinkero.png" type="image/icon type">
     <style>
@@ -184,27 +185,54 @@
         .rainbow-text {
             animation: rainbow 3s ease-in-out infinite;
         }
-        
+
         @keyframes rainbow {
-            0% { color: #ff0000; }
-            16% { color: #ff7f00; }
-            32% { color: #ffff00; }
-            48% { color: #00ff00; }
-            64% { color: #0000ff; }
-            80% { color: #4b0082; }
-            100% { color: #ff0000; }
+            0% {
+                color: #ff0000;
+            }
+
+            16% {
+                color: #ff7f00;
+            }
+
+            32% {
+                color: #ffff00;
+            }
+
+            48% {
+                color: #00ff00;
+            }
+
+            64% {
+                color: #0000ff;
+            }
+
+            80% {
+                color: #4b0082;
+            }
+
+            100% {
+                color: #ff0000;
+            }
         }
-    
+
         .click-effect {
             position: absolute;
             pointer-events: none;
             font-size: 24px;
             animation: floatUp 1s ease-out;
         }
-    
+
         @keyframes floatUp {
-            0% { transform: translateY(0); opacity: 1; }
-            100% { transform: translateY(-100px); opacity: 1; }
+            0% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-100px);
+                opacity: 1;
+            }
         }
 
         @media (max-width: 1100px) {
@@ -355,6 +383,7 @@
                 <button id="betButton" onclick="handleBet()">BET</button>
             </div>
 
+            
             <div class="stats">
                 <div id="result">Last Result: 0x ($0)</div>
                 <div id="profit">Total Profit: $0</div>
@@ -363,7 +392,7 @@
                 <button id="soundButton" onclick="toggleSound()">Sound: Off</button>
             </div>
         </div>
-
+        
         <div id="board">
             <div class="slot-multipliers"></div>
         </div>
@@ -372,7 +401,7 @@
     <script>
         const { Engine, Render, Runner, World, Bodies, Body, Events } = Matter;
         let engine, runner;
-        let currentBalls = []; 
+        let currentBalls = [];
         let balance = 1000;
         let autoMode = false;
         let totalBet = 0;
@@ -391,7 +420,7 @@
             soundEnabled = !soundEnabled;
             document.getElementById('soundButton').textContent = `Sound: ${soundEnabled ? 'On' : 'Off'}`;
         }
-        
+
         const COLLISION_CATEGORIES = {
             DEFAULT: 0x0001,
             BALL: 0x0002
@@ -759,58 +788,59 @@
 
         document.getElementById('maxBet').addEventListener('click', setMaxBet);
 
+        // Precision max bet calculation
         function setMaxBet() {
-            const balance = parseFloat(document.getElementById('balance').textContent);
             const betInput = document.getElementById('bet');
+            const ballCount = currentMode === 'auto' ?
+                parseInt(document.getElementById('balls').value) : 1;
 
-            if (currentMode === 'auto') {
-                const ballCount = parseInt(document.getElementById('balls').value);
-                const maxBetPerBall = Math.floor(balance / ballCount);
-                betInput.value = maxBetPerBall > 0 ? maxBetPerBall : 1;
+            // Use precise balance with 1 decimal but floor for integer bets
+            const maxBetPerBall = Math.floor((balance * 10) / ballCount) / 10;
+            const maxIntegerBet = Math.floor(maxBetPerBall);
+
+            if (maxIntegerBet < 1) {
+                betInput.value = 1;
             } else {
-                betInput.value = balance > 0 ? Math.floor(balance) : 1;
+                betInput.value = maxIntegerBet;
+                // Show precise remaining balance feedback
+                const remaining = (balance - (maxIntegerBet * ballCount)).toFixed(1);
             }
 
             betInput.dispatchEvent(new Event('input'));
         }
 
+        // Updated auto drop with error handling
         async function startAutoDrop() {
-            autoDropSound();
-
-            if (autoMode) return;
-            autoMode = true;
-
-            const bet = parseFloat(document.getElementById('bet').value);
+            const bet = parseInt(document.getElementById('bet').value);
             const ballCount = parseInt(document.getElementById('balls').value);
-            totalBet = bet * ballCount;
+            const totalCost = bet * ballCount;
 
-            if (totalBet > balance) {
-                alert('Insufficient balance!');
-                autoMode = false;
+            if (totalCost > balance) {
+                const missing = (totalCost - balance).toFixed(1);
                 return;
             }
 
-            updateBalance(-totalBet);
-            totalWin = 0;
+            autoMode = true;
+            updateBalance(-totalCost);
 
-            const dropPromises = [];
-            
-            for (let i = 0; i < ballCount; i++) {
-                autoDropSound(); // Unique sound for auto mode drops
-                dropPromises.push(dropBall(bet));
-                await new Promise(r => setTimeout(r, 50)); // Slight delay between drops
+            try {
+                const results = await Promise.all(
+                    Array.from({ length: ballCount }, () =>
+                        dropBall(bet).then(multiplier => {
+                            const win = bet * multiplier;
+                            updateBalance(win);
+                            updateResult(multiplier, win);
+                            return win;
+                        })
+                    )
+                );
+
+                const totalWin = results.reduce((sum, win) => sum + win, 0);
+                const profit = totalWin - totalCost;
+
+            } finally {
+                autoMode = false;
             }
-
-            const results = await Promise.all(dropPromises);
-            results.forEach(multiplier => {
-                const win = bet * multiplier;
-                totalWin += win;
-                updateResult(multiplier, win);
-            });
-
-            updateBalance(totalWin);
-            updateProfit(totalWin - totalBet);
-            autoMode = false;
         }
 
         function updateResult(multiplier, win) {
@@ -856,6 +886,14 @@
 
         // Add this click handler (with other event listeners)
         document.querySelector('h1').addEventListener('click', handleTitleClick);
+
+        // Input validation to prevent decimal bets
+        document.getElementById('bet').addEventListener('input', function (e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value === '') this.value = 1;
+            this.value = Math.max(1, parseInt(this.value) || 1);
+            updateBetButtonState();
+        });
 
         function handleTitleClick(event) {
             clickCount++;
@@ -925,11 +963,11 @@
             isRainbowActive = false;
         }
 
-        // Modify your updateBalance function
+        // Update balance handling with precise decimals
         function updateBalance(amount) {
-            balance += amount;
-            document.getElementById('balance').textContent = balance.toFixed(0);
-            updateBetButtonState(); // Add this line
+            balance = Number((balance + amount).toFixed(1));
+            document.getElementById('balance').textContent = balance.toFixed(1);
+            updateBetButtonState();
         }
 
         document.addEventListener('dblclick', function (e) {

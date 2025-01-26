@@ -743,41 +743,38 @@
         }
 
         async function startAutoDrop() {
-            autoDropSound();
-
-            if (autoMode) return;
-            autoMode = true;
-
-            const bet = parseFloat(document.getElementById('bet').value);
+            const bet = parseInt(document.getElementById('bet').value);
             const ballCount = parseInt(document.getElementById('balls').value);
-            totalBet = bet * ballCount;
+            const totalCost = bet * ballCount;
 
-            if (totalBet > balance) {
-                autoMode = false;
+            if (totalCost > balance) {
+                const missing = (totalCost - balance).toFixed(1);
                 return;
             }
 
-            updateBalance(-totalBet);
-            totalWin = 0;
+            autoMode = true;
+            updateBalance(-totalCost);
 
-            const dropPromises = [];
+            try {
+                const results = await Promise.all(
+                    Array.from({ length: ballCount }, () =>
+                        dropBall(bet).then(multiplier => {
+                            const win = bet * multiplier;
+                            updateBalance(win);
+                            updateResult(multiplier, win);
+                            return win;
+                        })
+                    )
+                );
 
-            for (let i = 0; i < ballCount; i++) {
-                autoDropSound(); // Unique sound for auto mode drops
-                dropPromises.push(dropBall(bet));
-                await new Promise(r => setTimeout(r, 50)); // Slight delay between drops
+                const totalWin = results.reduce((sum, win) => sum + win, 0);
+                const profit = totalWin - totalCost;
+
+            } finally {
+                updateBalance(totalWin);
+                updateProfit(totalWin - totalBet);
+                autoMode = false;
             }
-
-            const results = await Promise.all(dropPromises);
-            results.forEach(multiplier => {
-                const win = bet * multiplier;
-                totalWin += win;
-                updateResult(multiplier, win);
-            });
-
-            updateBalance(totalWin);
-            updateProfit(totalWin - totalBet);
-            autoMode = false;
         }
 
         function updateResult(multiplier, win) {
@@ -808,15 +805,20 @@
         document.getElementById('maxBet').addEventListener('click', setMaxBet);
 
         function setMaxBet() {
-            const balance = parseFloat(document.getElementById('balance').textContent);
             const betInput = document.getElementById('bet');
+            const ballCount = currentMode === 'auto' ?
+                parseInt(document.getElementById('balls').value) : 1;
 
-            if (currentMode === 'auto') {
-                const ballCount = parseInt(document.getElementById('balls').value);
-                const maxBetPerBall = Math.floor(balance / ballCount);
-                betInput.value = maxBetPerBall > 0 ? maxBetPerBall : 1;
+            // Use precise balance with 1 decimal but floor for integer bets
+            const maxBetPerBall = Math.floor((balance * 10) / ballCount) / 10;
+            const maxIntegerBet = Math.floor(maxBetPerBall);
+
+            if (maxIntegerBet < 1) {
+                betInput.value = 1;
             } else {
-                betInput.value = balance > 0 ? Math.floor(balance) : 1;
+                betInput.value = maxIntegerBet;
+                // Show precise remaining balance feedback
+                const remaining = (balance - (maxIntegerBet * ballCount)).toFixed(1);
             }
 
             betInput.dispatchEvent(new Event('input'));
@@ -854,11 +856,18 @@
         document.getElementById('manualMode').addEventListener('click', updateBetButtonState);
         document.getElementById('autoMode').addEventListener('click', updateBetButtonState);
 
+        document.getElementById('bet').addEventListener('input', function (e) {
+            this.value = this.value.replace(/[^0-9]/g, '');  // Only allow numbers
+            if (this.value === '') this.value = 1;
+            this.value = Math.max(1, parseInt(this.value) || 1);  // Force integer
+            updateBetButtonState();
+        });
+        
         // Modify your updateBalance function
         function updateBalance(amount) {
-            balance += amount;
-            document.getElementById('balance').textContent = balance.toFixed(0);
-            updateBetButtonState(); // Add this line
+            balance = Number((balance + amount).toFixed(1));  // Allows 1 decimal place
+            document.getElementById('balance').textContent = balance.toFixed(1);
+            updateBetButtonState();
         }
 
         document.addEventListener('dblclick', function (e) {
