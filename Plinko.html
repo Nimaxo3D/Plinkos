@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>PlinkoBingo</title>
+    <meta name="viewport"content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.18.0/matter.min.js"></script>
+    <link rel="icon" href="https://i.ibb.co/CPjv1sy/Plinkero.png" type="image/icon type">
+    <style>
+        html {
+            touch-action: manipulation;
+            -ms-touch-action: manipulation;
+        }
+
+        body {
+            touch-action: manipulation;
+        }
+
+        body {
+            background: #111318;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Arial', sans-serif;
+            color: white;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        h1 {
+            user-select: none;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .controls-panel {
+            background: #13161d;
+            padding: 20px;
+            border-radius: 10px;
+            width: 250px;
+            display: flex;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        #board {
+            width: 800px;
+            height: 700px;
+            background: #13161d;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        input,
+        select,
+        button {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background: #2a2f3d;
+            color: white;
+            outline: none;
+        }
+
+        button {
+            background: #00E701;
+            color: black;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        #header {
+            text-shadow: 0 0 20px rgb(255, 255, 255);
+        }
+
+        #betButton {
+            height: 50px;
+            font-weight: 700;
+        }
+
+        #betButton:disabled {
+            background: #3a3f4d !important;
+            color: #666 !important;
+            cursor: not-allowed;
+        }
+
+        #betButton:disabled:hover {
+            opacity: 1 !important;
+        }
+
+        .bet-amount-container {
+            display: flex;
+            gap: 5px;
+        }
+
+        #bet {
+            flex: 1;
+        }
+
+        .max-button {
+            background: #574672 !important;
+            color: white !important;
+            padding: 10px 15px !important;
+            transition: background 0.2s;
+        }
+
+        .max-button:hover {
+            background: #796699 !important;
+            opacity: 1 !important;
+        }
+
+        #betAmount {
+            display: flex;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button:disabled {
+            background: #3a3f4d;
+            cursor: not-allowed;
+        }
+
+        .stats {
+            background: #2a2f3d;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: auto;
+        }
+
+        .slot-multipliers {
+            display: flex;
+            position: absolute;
+            left: 0;
+            gap: 0;
+        }
+
+        .slot {
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .mode-selector button {
+            flex: 1;
+            padding: 12px;
+            background: #2a2f3d;
+            color: white;
+        }
+
+        .mode-selector button.active {
+            background: #00E701;
+            color: black;
+        }
+
+        .rainbow-text {
+            animation: rainbow 3s ease-in-out infinite;
+        }
+        
+        @keyframes rainbow {
+            0% { color: #ff0000; }
+            16% { color: #ff7f00; }
+            32% { color: #ffff00; }
+            48% { color: #00ff00; }
+            64% { color: #0000ff; }
+            80% { color: #4b0082; }
+            100% { color: #ff0000; }
+        }
+    
+        .click-effect {
+            position: absolute;
+            pointer-events: none;
+            font-size: 24px;
+            animation: floatUp 1s ease-out;
+        }
+    
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-100px); opacity: 1; }
+        }
+
+        @media (max-width: 1100px) {
+            body {
+                padding: 10px;
+                min-height: 100vh;
+                overflow-x: hidden;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                margin: 10px 0;
+            }
+
+            .container {
+                flex-direction: column;
+                width: 100%;
+                margin-top: 10px;
+                gap: 15px;
+            }
+
+            #board {
+                order: -1;
+            }
+
+            .controls-panel {
+                display: flex;
+                width: 800px;
+                flex-direction: column;
+                gap: 5px;
+                padding: 15px;
+                box-sizing: border-box;
+            }
+
+            .mode-selector button {
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+
+            input,
+            select,
+            button {
+                padding: 12px;
+                font-size: 1rem;
+            }
+
+            .slot {
+                font-size: 12px;
+                height: 35px;
+            }
+
+            .stats {
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+
+            .max-button {
+                padding: 10px 12px !important;
+            }
+        }
+
+        @media (max-width: 817px) {
+            body {
+                padding: 10px;
+                min-height: 100vh;
+                overflow-x: hidden;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                margin: 10px 0;
+            }
+
+            .container {
+                flex-direction: column;
+                width: 100%;
+                margin-top: 10px;
+                gap: 15px;
+            }
+
+            .controls-panel {
+                width: 800px;
+                padding: 15px;
+                box-sizing: border-box;
+                position: static;
+                gap: 12px;
+            }
+        }
+
+        #soundButton {
+            background: #3a3f4d !important;
+            color: white;
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="header">
+        <!-- <h1>P L I N K O B I N G O</h1> -->
+        <h1>C R I N G O B I N G O</h1>
+    </div>
+    <div class="container">
+        <div class="controls-panel">
+            <div class="balance">
+                Balance: $<span id="balance">1000</span>
+            </div>
+            <div class="mode-selector">
+                <button id="manualMode" class="active" onclick="toggleMode('manual')">Manual</button>
+                <button id="autoMode" onclick="toggleMode('auto')">Auto</button>
+            </div>
+
+            <div class="control-group">
+                <label>Bet Amount</label>
+                <div id="betAmount">
+                    <input type="number" id="bet" value="10" min="1" step="1">
+                    <button id="maxBet" class="max-button">MAX</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Risk Level</label>
+                <select id="risk">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Rows</label>
+                <input type="number" id="rows" min="8" max="12" value="10" disabled>
+            </div>
+
+            <div class="control-group hidden" id="autoControls">
+                <label>Number of Balls</label>
+                <select id="balls">
+                    <option>1</option>
+                    <option>5</option>
+                    <option selected>10</option>
+                    <option>25</option>
+                    <option>50</option>
+                    <option>100</option>
+                    <option>1000</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <button id="betButton" onclick="handleBet()">BET</button>
+            </div>
+
+            <div class="stats">
+                <div id="result">Last Result: 0x ($0)</div>
+                <div id="profit">Total Profit: $0</div>
+            </div>
+            <div class="control-group">
+                <button id="soundButton" onclick="toggleSound()">Sound: Off</button>
+            </div>
+        </div>
+
+        <div id="board">
+            <div class="slot-multipliers"></div>
+        </div>
+    </div>
+
+    <script>
+        const { Engine, Render, Runner, World, Bodies, Body, Events } = Matter;
+        let engine, runner;
+        let currentBalls = []; 
+        let balance = 1000;
+        let autoMode = false;
+        let totalBet = 0;
+        let totalWin = 0;
+        let currentMultipliers = [];
+        let currentMode = 'manual';
+        let clickCount = 0;
+        let clickTimer;
+        let baseBonus = 100;
+        let isRainbowActive = false;
+        let soundEnabled = false;
+        const pitchMultiplier = 0.8; // 0.8 = 20% lower pitch (1.0 is normal)
+
+        // Sound toggle function
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundButton').textContent = `Sound: ${soundEnabled ? 'On' : 'Off'}`;
+        }
+        
+        const COLLISION_CATEGORIES = {
+            DEFAULT: 0x0001,
+            BALL: 0x0002
+        };
+
+        const config = {
+            low: {
+                rows: 12,
+                multipliers: [10, 5, 2, 1, 0.5, 1, 2, 5, 10],
+                pegSpacing: 42,
+                ballSize: 12,
+                ballOptions: {
+                    restitution: 0.4,
+                    friction: 0.001,
+                    collisionFilter: {
+                        category: COLLISION_CATEGORIES.BALL,
+                        mask: COLLISION_CATEGORIES.DEFAULT
+                    }
+                }
+            },
+            medium: {
+                rows: 14,
+                multipliers: [100, 50, 20, 10, 5, 2, 0.1, 2, 5, 10, 20, 50, 100],
+                pegSpacing: 38,
+                ballSize: 10,
+                ballOptions: {
+                    restitution: 0.35,
+                    friction: 0.001,
+                    collisionFilter: {
+                        category: COLLISION_CATEGORIES.BALL,
+                        mask: COLLISION_CATEGORIES.DEFAULT
+                    }
+                }
+            },
+            high: {
+                rows: 16,
+                multipliers: [1000, 200, 100, 5, 2, 1, 0.2, 0.1, 0.1, 0.1, 0.2, 1, 2, 5, 100, 200, 1000],
+                pegSpacing: 35,
+                ballSize: 8,
+                ballOptions: {
+                    restitution: 0.3,
+                    friction: 0.001,
+                    collisionFilter: {
+                        category: COLLISION_CATEGORIES.BALL,
+                        mask: COLLISION_CATEGORIES.DEFAULT
+                    }
+                }
+            }
+        };
+
+        function toggleMode(mode) {
+            currentMode = mode;
+            document.getElementById('manualMode').classList.toggle('active', mode === 'manual');
+            document.getElementById('autoMode').classList.toggle('active', mode === 'auto');
+            document.getElementById('autoControls').classList.toggle('hidden', mode !== 'auto');
+        }
+
+        async function handleBet() {
+            if (autoMode) return;
+            if (document.getElementById('betButton').disabled) return;
+
+            if (currentMode === 'manual') {
+                dropManualBall();
+            } else {
+                await startAutoDrop();
+            }
+        }
+
+        function initEngine() {
+            engine = Engine.create({
+                gravity: { y: 0.5 },
+                timing: { timeScale: 1.2 }
+            });
+            runner = Runner.create();
+
+            const render = Render.create({
+                element: document.getElementById('board'),
+                engine: engine,
+                options: {
+                    width: 800,
+                    height: 700,
+                    wireframes: false,
+                    background: '#13161d'
+                }
+            });
+
+            Render.run(render);
+            Runner.run(runner, engine);
+            createBoard();
+        }
+
+        function createBoard() {
+            // Refund all active balls and resolve their promises
+            const refundedBalls = [...currentBalls];
+            const totalRefund = refundedBalls.reduce((acc, { bet }) => acc + bet, 0);
+            if (totalRefund > 0) {
+                updateBalance(totalRefund);
+            }
+            refundedBalls.forEach(ball => {
+                World.remove(engine.world, ball.body);
+                ball.resolve(0); // Resolve with 0 multiplier
+            });
+            currentBalls = [];
+
+            World.clear(engine.world);
+
+            // Boundaries
+            World.add(engine.world, [
+                Bodies.rectangle(400, -10, 810, 20, {
+                    isStatic: true,
+                    render: { fillStyle: '#13161d' },
+                    collisionFilter: { category: COLLISION_CATEGORIES.DEFAULT }
+                }),
+                Bodies.rectangle(-10, 300, 40, 800, {
+                    isStatic: true,
+                    render: { fillStyle: '#13161d' },
+                    collisionFilter: { category: COLLISION_CATEGORIES.DEFAULT }
+                }),
+                Bodies.rectangle(810, 300, 40, 800, {
+                    isStatic: true,
+                    render: { fillStyle: '#13161d' },
+                    collisionFilter: { category: COLLISION_CATEGORIES.DEFAULT }
+                }),
+                Bodies.rectangle(400, 690, 810, 20, {
+                    isStatic: true,
+                    render: { fillStyle: '#13161d' },
+                    collisionFilter: { category: COLLISION_CATEGORIES.DEFAULT }
+                })
+            ]);
+
+            const risk = document.getElementById('risk').value;
+            const rows = parseInt(document.getElementById('rows').value);
+            const { multipliers, pegSpacing } = config[risk];
+
+            // Create pegs
+            for (let row = 0; row < rows; row++) {
+                const y = 80 + (row * pegSpacing);
+                const pegsInRow = row + 3;
+                const startX = (800 - (pegsInRow - 1) * pegSpacing) / 2;
+
+                for (let i = 0; i < pegsInRow; i++) {
+                    const peg = Bodies.circle(
+                        startX + i * pegSpacing,
+                        y,
+                        7,
+                        {
+                            isStatic: true,
+                            render: { fillStyle: '#555555' },
+                            collisionFilter: { category: COLLISION_CATEGORIES.DEFAULT },
+                            label: 'peg' // Add label to identify pegs
+                        }
+                    );
+                    World.add(engine.world, peg);
+                }
+            }
+
+            // Calculate playable area from last row
+            const lastRow = rows + 4.5;
+            const pegsInLastRow = lastRow + 3;
+            const startX = (800 - (pegsInLastRow - 1) * pegSpacing) / 2;
+            const endX = startX + (pegsInLastRow - 1) * pegSpacing;
+            const playableWidth = endX - startX;
+            const slotY = 80 + (rows * pegSpacing) + 20;
+
+            // Create slot sensors
+            const slotCount = multipliers.length;
+            const slotWidth = playableWidth / slotCount;
+            currentMultipliers = [];
+
+            multipliers.forEach((mult, index) => {
+                const x = startX + (index * slotWidth) + slotWidth / 2;
+                const slotSensor = Bodies.rectangle(
+                    x,
+                    slotY,
+                    slotWidth,
+                    40,
+                    {
+                        isStatic: true,
+                        isSensor: true,
+                        label: `slotSensor-${index}`,
+                        render: { visible: false },
+                        collisionFilter: { category: COLLISION_CATEGORIES.DEFAULT }
+                    }
+                );
+                World.add(engine.world, slotSensor);
+                currentMultipliers.push({ mult, sensor: slotSensor });
+            });
+
+            // Update displayed multipliers
+            const slotContainer = document.querySelector('.slot-multipliers');
+            slotContainer.innerHTML = '';
+            slotContainer.style.left = `${startX}px`;
+            slotContainer.style.width = `${playableWidth}px`;
+            slotContainer.style.top = `${slotY - 20}px`;
+
+            multipliers.forEach((mult, index) => {
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.textContent = `${mult}x`;
+                slot.style.backgroundColor = getMultiplierColor(mult);
+                slot.style.width = `${slotWidth}px`;
+                slotContainer.appendChild(slot);
+            });
+        }
+
+        function getMultiplierColor(multiplier) {
+            if (multiplier >= 1000) return '#4B0082';
+            if (multiplier >= 100) return '#ff0000';
+            if (multiplier >= 10) return '#ff5500';
+            if (multiplier >= 1) return '#f5a501';
+            return '#00ff00';
+        }
+
+        // Audio context setup
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // Sound buffers
+        let spawnSound, slotSound, pegCollisionSound;
+
+        // Load sounds
+        function loadSound(url) {
+            return fetch(url)
+                .then(response => response.arrayBuffer())
+                .then(data => audioContext.decodeAudioData(data));
+        }
+
+        Promise.all([
+            loadSound('https://cdn.samply.app/users/xGwrtp5tUTXYm8w2NCkcDSLUHkg1/files/fc2c2ce8-249d-43bb-b02d-459b0e81e2eb/output/aac256k@output.mp4').then(buffer => { spawnSound = buffer; }),
+            loadSound('https://cdn.samply.app/users/xGwrtp5tUTXYm8w2NCkcDSLUHkg1/files/21df549f-07b6-4f27-943b-9c25852ac5ab/output/aac256k@output.mp4').then(buffer => { slotSound = buffer; }),
+            loadSound('https://cdn.samply.app/users/xGwrtp5tUTXYm8w2NCkcDSLUHkg1/files/fc2c2ce8-249d-43bb-b02d-459b0e81e2eb/output/aac256k@output.mp4').then(buffer => { pegCollisionSound = buffer; })
+        ]).then(() => {
+            console.log('All sounds loaded');
+        });
+
+        // Modified sound functions
+        function playSpawnSound() {
+            if (!soundEnabled) return;
+            const source = audioContext.createBufferSource();
+            source.buffer = spawnSound;
+            source.playbackRate.value = 1.6 * pitchMultiplier; // Lowered from 2.0
+            source.connect(audioContext.destination);
+            source.start(0);
+        }
+
+        function playSlotSound(multiplier) {
+            if (!soundEnabled) return;
+            const source = audioContext.createBufferSource();
+            source.buffer = slotSound;
+            source.playbackRate.value = (0.8 + (multiplier * 2.1)) * pitchMultiplier; // Added multiplier
+            source.connect(audioContext.destination);
+            source.start(0);
+        }
+
+        function playPegCollisionSound() {
+            if (!soundEnabled) return;
+            const source = audioContext.createBufferSource();
+            source.buffer = pegCollisionSound;
+            source.playbackRate.value = (0.8 + Math.random() * 0.4) * pitchMultiplier; // Added multiplier
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = 0.2;
+            source.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            source.start(0);
+        }
+
+        // In the autoDropSound function inside startAutoDrop()
+        const autoDropSound = () => {
+            if (!soundEnabled) return;
+            const source = audioContext.createBufferSource();
+            source.buffer = spawnSound;
+            source.playbackRate.value = 2.4 * pitchMultiplier; // Lowered from 3.0
+            source.connect(audioContext.destination);
+            source.start(0);
+        };
+
+        function dropBall(betAmount) {
+            if (soundEnabled) playSpawnSound();
+            return new Promise(resolve => {
+                const risk = document.getElementById('risk').value;
+                const { ballSize, ballOptions } = config[risk];
+
+                const ball = Bodies.circle(
+                    400 + (Math.random() - 0.5) * 10,
+                    30,
+                    ballSize,
+                    {
+                        ...ballOptions,
+                        frictionAir: 0.02,
+                        render: { fillStyle: '#a6080b' },
+                        label: 'ball'
+                    }
+                );
+
+                const ballEntry = {
+                    body: ball,
+                    bet: betAmount,
+                    resolve: (multiplier) => {
+                        Events.off(engine, 'collisionStart', collisionHandler);
+                        resolve(multiplier);
+                    }
+                };
+
+                currentBalls.push(ballEntry);
+                World.add(engine.world, ball);
+
+                const collisionHandler = (event) => {
+                    event.pairs.forEach(pair => {
+                        if (pair.bodyA === ball || pair.bodyB === ball) {
+                            const otherBody = pair.bodyA === ball ? pair.bodyB : pair.bodyA;
+
+                            // PEG COLLISION DETECTION
+                            if (otherBody.label === 'peg') {
+                                playPegCollisionSound();
+                            }
+
+                            // Existing slot sensor detection
+                            const sensor = otherBody.label?.startsWith('slotSensor')
+                                ? otherBody
+                                : null;
+
+                            if (sensor) {
+                                const multiplier = currentMultipliers.find(
+                                    m => m.sensor.id === sensor.id
+                                ).mult;
+
+                                playSlotSound(multiplier);
+                                World.remove(engine.world, ball);
+                                currentBalls = currentBalls.filter(b => b !== ballEntry);
+                                ballEntry.resolve(multiplier);
+                            }
+                        }
+                    });
+                };
+
+                Events.on(engine, 'collisionStart', collisionHandler);
+            });
+        }
+
+        function dropManualBall() {
+            const bet = parseFloat(document.getElementById('bet').value);
+            if (bet > balance) {
+                return;
+            }
+
+            updateBalance(-bet);
+
+            dropBall(bet).then(multiplier => {
+                const win = bet * multiplier;
+                updateBalance(win);
+                updateResult(multiplier, win);
+                updateProfit(win - bet);
+            });
+        }
+        // Add keyboard controls for Space/Enter
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                // Allow Enter even in input fields, but prevent Space in inputs
+                if (event.key === ' ' && (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.tagName === 'SELECT')) {
+                    return;
+                }
+                handleBet();
+                event.preventDefault();
+            }
+        });
+
+        document.getElementById('maxBet').addEventListener('click', setMaxBet);
+
+        function setMaxBet() {
+            const balance = parseFloat(document.getElementById('balance').textContent);
+            const betInput = document.getElementById('bet');
+
+            if (currentMode === 'auto') {
+                const ballCount = parseInt(document.getElementById('balls').value);
+                const maxBetPerBall = Math.floor(balance / ballCount);
+                betInput.value = maxBetPerBall > 0 ? maxBetPerBall : 1;
+            } else {
+                betInput.value = balance > 0 ? Math.floor(balance) : 1;
+            }
+
+            betInput.dispatchEvent(new Event('input'));
+        }
+
+        async function startAutoDrop() {
+            autoDropSound();
+
+            if (autoMode) return;
+            autoMode = true;
+
+            const bet = parseFloat(document.getElementById('bet').value);
+            const ballCount = parseInt(document.getElementById('balls').value);
+            totalBet = bet * ballCount;
+
+            if (totalBet > balance) {
+                alert('Insufficient balance!');
+                autoMode = false;
+                return;
+            }
+
+            updateBalance(-totalBet);
+            totalWin = 0;
+
+            const dropPromises = [];
+            
+            for (let i = 0; i < ballCount; i++) {
+                autoDropSound(); // Unique sound for auto mode drops
+                dropPromises.push(dropBall(bet));
+                await new Promise(r => setTimeout(r, 50)); // Slight delay between drops
+            }
+
+            const results = await Promise.all(dropPromises);
+            results.forEach(multiplier => {
+                const win = bet * multiplier;
+                totalWin += win;
+                updateResult(multiplier, win);
+            });
+
+            updateBalance(totalWin);
+            updateProfit(totalWin - totalBet);
+            autoMode = false;
+        }
+
+        function updateResult(multiplier, win) {
+            const resultElement = document.getElementById('result');
+            resultElement.textContent = `Last Result: ${multiplier}x ($${win.toFixed(0)})`;
+            resultElement.style.color = getMultiplierColor(multiplier);
+
+            resultElement.style.transition = 'none';
+            resultElement.style.opacity = '1';
+            setTimeout(() => {
+                resultElement.style.transition = 'opacity 1s';
+                resultElement.style.opacity = '0.7';
+            }, 100);
+        }
+
+        function updateProfit(amount) {
+            document.getElementById('profit').textContent =
+                `Total Profit: ${amount >= 0 ? '+$' : '-$'}${Math.abs(amount.toFixed(0))}`;
+        }
+
+        // Add this function
+        function updateBetButtonState() {
+            const betButton = document.getElementById('betButton');
+            const betAmount = parseFloat(document.getElementById('bet').value);
+            const balance = parseFloat(document.getElementById('balance').textContent);
+            const isAutoMode = currentMode === 'auto';
+
+            if (isAutoMode) {
+                const ballCount = parseInt(document.getElementById('balls').value);
+                const totalBet = betAmount * ballCount;
+                betButton.disabled = totalBet > balance || totalBet <= 0;
+            } else {
+                betButton.disabled = betAmount > balance || betAmount <= 0;
+            }
+        }
+
+        // Add these event listeners (place with other listeners)
+        document.getElementById('bet').addEventListener('input', updateBetButtonState);
+        document.getElementById('balls').addEventListener('change', updateBetButtonState);
+        document.getElementById('risk').addEventListener('change', updateBetButtonState);
+        document.getElementById('manualMode').addEventListener('click', updateBetButtonState);
+        document.getElementById('autoMode').addEventListener('click', updateBetButtonState);
+
+        // Add this click handler (with other event listeners)
+        document.querySelector('h1').addEventListener('click', handleTitleClick);
+
+        function handleTitleClick(event) {
+            clickCount++;
+            clearTimeout(clickTimer);
+            clickTimer = setTimeout(resetClickCounter, 2000);
+
+            // Calculate bonus (exponentially increasing)
+            const bonus = baseBonus * Math.pow(1.2, clickCount);
+            updateBalance(bonus);
+
+            // Add visual feedback
+            createClickEffect(event, bonus);
+            updateRainbowEffect();
+
+            // Big bonus every 15 clicks
+            if (clickCount % 15 === 0) {
+                const megaBonus = 10000 * Math.floor(clickCount / 15);
+                updateBalance(megaBonus);
+                createMegaEffect(megaBonus);
+            }
+        }
+
+        function createClickEffect(event, amount) {
+            const effect = document.createElement('div');
+            effect.className = 'click-effect';
+            effect.textContent = `+$${Math.round(amount)}`;
+            effect.style.left = `${event.clientX}px`;
+            effect.style.top = `${event.clientY}px`;
+            effect.style.color = `hsl(${Date.now() % 360}, 100%, 50%)`;
+            document.body.appendChild(effect);
+
+            setTimeout(() => effect.remove(), 1000);
+        }
+
+        function createMegaEffect(amount) {
+            const originalColor = document.querySelector('h1').style.color;
+            document.querySelector('h1').classList.add('rainbow-text');
+
+            // Add explosion effect
+            for (let i = 0; i < 50; i++) {
+                const angle = (Math.PI * 2 * i) / 50;
+                const effect = document.createElement('div');
+                effect.className = 'click-effect';
+                effect.textContent = '💰';
+                effect.style.left = `calc(50% + ${Math.cos(angle) * 100}px)`;
+                effect.style.top = `calc(50px + ${Math.sin(angle) * 100}px)`;
+                effect.style.fontSize = '32px';
+                document.body.appendChild(effect);
+
+                setTimeout(() => effect.remove(), 1000);
+            }
+        }
+
+        function updateRainbowEffect() {
+            const intensity = Math.min(1, clickCount / 15);
+            document.documentElement.style.setProperty('--rainbow-speed', `${1 - intensity}s`);
+
+            if (!isRainbowActive && clickCount > 5) {
+                document.querySelector('h1').classList.add('rainbow-text');
+                isRainbowActive = true;
+            }
+        }
+
+        function resetClickCounter() {
+            clickCount = 0;
+            document.querySelector('h1').classList.remove('rainbow-text');
+            isRainbowActive = false;
+        }
+
+        // Modify your updateBalance function
+        function updateBalance(amount) {
+            balance += amount;
+            document.getElementById('balance').textContent = balance.toFixed(0);
+            updateBetButtonState(); // Add this line
+        }
+
+        document.addEventListener('dblclick', function (e) {
+            e.preventDefault();
+        }, { passive: false });
+
+        // Initialize game
+        document.getElementById('risk').addEventListener('change', () => {
+            const risk = document.getElementById('risk').value;
+            document.getElementById('rows').value = config[risk].rows;
+            createBoard();
+        });
+
+        document.getElementById('rows').value = config.medium.rows;
+        initEngine();
+    </script>
+</body>
+
+</html>
