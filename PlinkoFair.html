@@ -148,6 +148,7 @@
         }
 
         .slot {
+            position: relative;
             height: 40px;
             display: flex;
             align-items: center;
@@ -156,6 +157,17 @@
             border-radius: 5px;
             font-size: 14px;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+        }
+
+        .slot-count {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 12px;
+            display: none;
+            pointer-events: none;
         }
 
         .hidden {
@@ -179,6 +191,7 @@
             background: #00E701;
             color: black;
         }
+
         @media (max-width: 1100px) {
             body {
                 padding: 10px;
@@ -266,10 +279,18 @@
             }
         }
 
-        #soundButton {
-            background: #3a3f4d !important;
+        .settings-group {
+            width: 550px;
+            display: flex;
+        }
+
+        #soundButton,
+        #showAmountOfSlots {
+            background: #2a2f3d !important;
             color: white;
+            width: 123px;
             font-weight: 700;
+            margin: 1px;
         }
     </style>
 </head>
@@ -333,8 +354,9 @@
                 <div id="profit">Total Profit: $0</div>
                 <div>Player Advantage: <span id="houseEdge">+2.0%</span></div>
             </div>
-            <div class="control-group">
+            <div class="settings-group">
                 <button id="soundButton" onclick="toggleSound()">Sound: Off</button>
+                <button id="showAmountOfSlots">Slot Count: Off</button>
             </div>
         </div>
 
@@ -355,6 +377,8 @@
         let currentMode = 'manual';
         let soundEnabled = false;
         const pitchMultiplier = 0.8; // 0.8 = 20% lower pitch (1.0 is normal)
+        let slotCountEnabled = false;
+        let slotCounts = [];
 
         // Sound toggle function
         function toggleSound() {
@@ -418,6 +442,14 @@
             document.getElementById('autoMode').classList.toggle('active', mode === 'auto');
             document.getElementById('autoControls').classList.toggle('hidden', mode !== 'auto');
         }
+
+        document.getElementById('showAmountOfSlots').addEventListener('click', function () {
+            slotCountEnabled = !slotCountEnabled;
+            this.textContent = `Slot Count: ${slotCountEnabled ? 'On' : 'Off'}`;
+            document.querySelectorAll('.slot-count').forEach(el => {
+                el.style.display = slotCountEnabled ? 'block' : 'none';
+            });
+        });
 
         async function handleBet() {
             if (document.getElementById('betButton').disabled) return;
@@ -487,9 +519,9 @@
                 ball.resolve(0); // Resolve with 0 multiplier
             });
             currentBalls = [];
-
+        
             World.clear(engine.world);
-
+        
             // Boundaries
             World.add(engine.world, [
                 Bodies.rectangle(400, -10, 810, 20, {
@@ -513,17 +545,17 @@
                     collisionFilter: { category: COLLISION_CATEGORIES.DEFAULT }
                 })
             ]);
-
+        
             const risk = document.getElementById('risk').value;
             const rows = parseInt(document.getElementById('rows').value);
             const { multipliers, pegSpacing } = config[risk];
-
+        
             // Create pegs
             for (let row = 0; row < rows; row++) {
                 const y = 80 + (row * pegSpacing);
                 const pegsInRow = row + 3;
                 const startX = (800 - (pegsInRow - 1) * pegSpacing) / 2;
-
+        
                 for (let i = 0; i < pegsInRow; i++) {
                     const peg = Bodies.circle(
                         startX + i * pegSpacing,
@@ -533,13 +565,13 @@
                             isStatic: true,
                             render: { fillStyle: '#555555' },
                             collisionFilter: { category: COLLISION_CATEGORIES.DEFAULT },
-                            label: 'peg' // Add label to identify pegs
+                            label: 'peg'
                         }
                     );
                     World.add(engine.world, peg);
                 }
             }
-
+        
             // Calculate playable area from last row
             const lastRow = rows + 4.5;
             const pegsInLastRow = lastRow + 3;
@@ -547,13 +579,19 @@
             const endX = startX + (pegsInLastRow - 1) * pegSpacing;
             const playableWidth = endX - startX;
             const slotY = 80 + (rows * pegSpacing) + 20;
-
-            // Create slot sensors
+        
+            // Create slot sensors and visual elements
             const slotCount = multipliers.length;
             const slotWidth = playableWidth / slotCount;
             currentMultipliers = [];
-
+            const slotContainer = document.querySelector('.slot-multipliers');
+            slotContainer.innerHTML = '';
+            slotContainer.style.left = `${startX}px`;
+            slotContainer.style.width = `${playableWidth}px`;
+            slotContainer.style.top = `${slotY - 20}px`;
+        
             multipliers.forEach((mult, index) => {
+                // Create Matter.js sensor body
                 const x = startX + (index * slotWidth) + slotWidth / 2;
                 const slotSensor = Bodies.rectangle(
                     x,
@@ -570,22 +608,29 @@
                 );
                 World.add(engine.world, slotSensor);
                 currentMultipliers.push({ mult, sensor: slotSensor });
-            });
-
-            // Update displayed multipliers
-            const slotContainer = document.querySelector('.slot-multipliers');
-            slotContainer.innerHTML = '';
-            slotContainer.style.left = `${startX}px`;
-            slotContainer.style.width = `${playableWidth}px`;
-            slotContainer.style.top = `${slotY - 20}px`;
-
-            multipliers.forEach((mult, index) => {
+        
+                // Create visual slot element
                 const slot = document.createElement('div');
                 slot.className = 'slot';
                 slot.textContent = `${mult}x`;
                 slot.style.backgroundColor = getMultiplierColor(mult);
                 slot.style.width = `${slotWidth}px`;
+        
+                // Create count display
+                const countEl = document.createElement('div');
+                countEl.className = 'slot-count';
+                countEl.textContent = '0';
+                countEl.style.display = slotCountEnabled ? 'block' : 'none';
+                slot.appendChild(countEl);
+        
                 slotContainer.appendChild(slot);
+            });
+        
+            // Initialize slot counts
+            slotCounts = new Array(multipliers.length).fill(0);
+            document.querySelectorAll('.slot-count').forEach((el, i) => {
+                el.textContent = '0';
+                el.style.display = slotCountEnabled ? 'block' : 'none';
             });
         }
 
@@ -613,7 +658,7 @@
                 .then(response => response.arrayBuffer())
                 .then(data => audioContext.decodeAudioData(data));
         }
-        
+
         Promise.all([
             loadSound('https://cdn.samply.app/users/xGwrtp5tUTXYm8w2NCkcDSLUHkg1/files/fc2c2ce8-249d-43bb-b02d-459b0e81e2eb/output/aac256k@output.mp4').then(buffer => { spawnSound = buffer; }),
             loadSound('https://cdn.samply.app/users/xGwrtp5tUTXYm8w2NCkcDSLUHkg1/files/21df549f-07b6-4f27-943b-9c25852ac5ab/output/aac256k@output.mp4').then(buffer => { slotSound = buffer; }),
@@ -698,17 +743,27 @@
                         if (pair.bodyA === ball || pair.bodyB === ball) {
                             const otherBody = pair.bodyA === ball ? pair.bodyB : pair.bodyA;
 
-                            // PEG COLLISION DETECTION
                             if (otherBody.label === 'peg') {
                                 playPegCollisionSound();
                             }
 
-                            // Existing slot sensor detection
                             const sensor = otherBody.label?.startsWith('slotSensor')
                                 ? otherBody
                                 : null;
 
                             if (sensor) {
+                                const slotIndex = currentMultipliers.findIndex(
+                                    m => m.sensor.id === sensor.id
+                                );
+
+                                if (slotIndex !== -1) {
+                                    slotCounts[slotIndex]++;
+                                    const countEl = document.querySelectorAll('.slot-count')[slotIndex];
+                                    if (countEl) {
+                                        countEl.textContent = slotCounts[slotIndex];
+                                    }
+                                }
+
                                 const multiplier = currentMultipliers.find(
                                     m => m.sensor.id === sensor.id
                                 ).mult;
@@ -862,7 +917,7 @@
             this.value = Math.max(1, parseInt(this.value) || 1);  // Force integer
             updateBetButtonState();
         });
-        
+
         // Modify your updateBalance function
         function updateBalance(amount) {
             balance = Number((balance + amount).toFixed(1));  // Allows 1 decimal place
